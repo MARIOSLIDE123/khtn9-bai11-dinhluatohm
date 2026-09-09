@@ -11,7 +11,9 @@ export async function submitSessionResult(session: StudentSession): Promise<{ su
   // Luôn lưu trữ cục bộ trước để phòng trường hợp mất mạng (offline resilience)
   saveSessionLocally(session);
 
-  // 1. Thử gửi qua Vercel API proxy nếu triển khai full-stack
+  let sentToCloud = false;
+
+  // 1. Thử gửi qua Vercel API proxy nếu đã deploy và có backend
   try {
     const res = await fetch('/api/submit-result', {
       method: 'POST',
@@ -19,15 +21,20 @@ export async function submitSessionResult(session: StudentSession): Promise<{ su
       body: JSON.stringify(session),
     });
 
-    if (res.ok) {
-      return { success: true, mode: 'api' };
+    const isJson = res.headers.get('content-type')?.includes('application/json');
+    if (res.ok && isJson) {
+      const json = await res.json();
+      if (json && json.status === 'success') {
+        sentToCloud = true;
+        return { success: true, mode: 'api' };
+      }
     }
   } catch {
-    // Tiếp tục fallback gửi trực tiếp tới Google Apps Script
+    // Không có Vercel API hoặc đang chạy local Vite -> chuyển sang gửi trực tiếp Google Apps Script
   }
 
-  // 2. Gửi trực tiếp tới Google Apps Script (Hỗ trợ chạy local Vite / GitHub Pages / Static hosting)
-  if (DEFAULT_GOOGLE_SCRIPT_URL) {
+  // 2. Gửi trực tiếp tới Google Apps Script Web App
+  if (!sentToCloud && DEFAULT_GOOGLE_SCRIPT_URL) {
     try {
       await fetch(DEFAULT_GOOGLE_SCRIPT_URL, {
         method: 'POST',
@@ -37,7 +44,7 @@ export async function submitSessionResult(session: StudentSession): Promise<{ su
       });
       return { success: true, mode: 'sheet' };
     } catch (err) {
-      console.warn('Không thể đồng bộ với Google Sheets:', err);
+      console.warn('Không thể gửi dữ liệu trực tiếp tới Google Sheets:', err);
     }
   }
 
@@ -45,10 +52,11 @@ export async function submitSessionResult(session: StudentSession): Promise<{ su
 }
 
 export async function fetchSessionsFromGoogleSheet(): Promise<any[]> {
-  // 1. Thử qua Vercel API proxy trước (tránh triệt để lỗi CORS khi chạy trên Vercel)
+  // 1. Thử qua Vercel API proxy trước (nếu có serverless backend)
   try {
     const apiRes = await fetch('/api/submit-result', { method: 'GET' });
-    if (apiRes.ok) {
+    const isJson = apiRes.headers.get('content-type')?.includes('application/json');
+    if (apiRes.ok && isJson) {
       const apiData = await apiRes.json();
       if (apiData && apiData.status === 'success' && Array.isArray(apiData.data)) {
         return apiData.data;
