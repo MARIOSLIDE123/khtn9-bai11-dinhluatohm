@@ -26,6 +26,15 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
   const [schoolName, setSchoolName] = useState<string>(initialSchool);
   const [error, setError] = useState<string>('');
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setName(initialName || '');
+      setClassName(initialClass || '9A');
+      setSchoolName(initialSchool || '');
+      setError('');
+    }
+  }, [isOpen, initialName, initialClass, initialSchool]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
