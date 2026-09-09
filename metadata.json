@@ -1,0 +1,6 @@
+{
+  "name": "KHTN 9 - BÀI 11: ĐỊNH LUẬT OHM",
+  "description": "Ứng dụng học tập tương tác Khoa học tự nhiên 9 - Bài 11: Điện trở và Định luật Ohm",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

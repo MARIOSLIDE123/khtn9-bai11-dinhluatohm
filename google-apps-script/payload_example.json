@@ -1,0 +1,54 @@
+{
+  "request_post_payload": {
+    "id": "session-1725850000000",
+    "studentName": "Nguyễn Văn An",
+    "className": "9A1",
+    "schoolName": "THCS Trưng Vương",
+    "startTime": "2026-09-09T08:00:00.000Z",
+    "endTime": "2026-09-09T08:35:00.000Z",
+    "score": 420,
+    "currentLevel": 5,
+    "completedStages": [1, 2, 3, 4, 5, 6, 7],
+    "badgesEarned": ["badge-1", "badge-2", "badge-3"],
+    "answersCount": 32,
+    "correctAnswersCount": 28,
+    "wrongQuestionIds": ["q-nb-14", "q-th-18", "q-tt-22"]
+  },
+  "response_post_success": {
+    "status": "success",
+    "message": "Cập nhật tiến độ học tập thành công!",
+    "data": {
+      "sessionId": "session-1725850000000",
+      "studentName": "Nguyễn Văn An",
+      "score": 420,
+      "accuracy": 88,
+      "classification": "Xuất sắc ⭐⭐⭐",
+      "updatedAt": "09/09/2026 08:35:10"
+    }
+  },
+  "response_get_all_students": {
+    "status": "success",
+    "count": 2,
+    "data": [
+      {
+        "id": "session-1725850000000",
+        "lastUpdated": "09/09/2026 08:35:10",
+        "studentName": "Nguyễn Văn An",
+        "className": "9A1",
+        "schoolName": "THCS Trưng Vương",
+        "startTime": "09/09/2026 08:00:00",
+        "endTime": "09/09/2026 08:35:00",
+        "durationMinutes": 35,
+        "score": 420,
+        "currentLevel": 5,
+        "completedStages": "1, 2, 3, 4, 5, 6, 7",
+        "answersCount": 32,
+        "correctAnswersCount": 28,
+        "accuracy": "88%",
+        "badgesEarned": 3,
+        "wrongQuestionIds": "q-nb-14, q-th-18, q-tt-22",
+        "classification": "Xuất sắc ⭐⭐⭐"
+      }
+    ]
+  }
+}
