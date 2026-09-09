@@ -16,51 +16,68 @@ export default function App() {
   // Navigation
   const [activeTab, setActiveTab] = useState<'learn' | 'mindmap' | 'game' | 'apply' | 'teacher'>('learn');
 
-  // Student Profile
-  const [studentName, setStudentName] = useState<string>('Học Sinh Lớp 9');
-  const [className, setClassName] = useState<string>('9A');
-  const [schoolName, setSchoolName] = useState<string>('');
-  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState<boolean>(false);
-  const [score, setScore] = useState<number>(0);
+  // 1. Tải dữ liệu lưu trữ cục bộ ngay từ lần khởi tạo đầu tiên (tránh race condition / flash state)
+  const initialLocal = useMemo(() => loadLocalSession(), []);
 
-  // Learning Progress
-  const [unlockedStageId, setUnlockedStageId] = useState<number>(1);
-  const [unlockedGameLevel, setUnlockedGameLevel] = useState<number>(1);
-  const [unlockedBadges, setUnlockedBadges] = useState<string[]>(['badge-1']);
+  // Student Profile: Đọc trực tiếp từ session đã lưu hoặc localStorage
+  const [studentName, setStudentName] = useState<string>(() => {
+    return initialLocal?.studentName || localStorage.getItem('ohm_student_name') || '';
+  });
+  const [className, setClassName] = useState<string>(() => {
+    return initialLocal?.className || localStorage.getItem('ohm_student_class') || '9A';
+  });
+  const [schoolName, setSchoolName] = useState<string>(() => {
+    return initialLocal?.schoolName || localStorage.getItem('ohm_student_school') || '';
+  });
+
+  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState<boolean>(() => {
+    const isRegistered = localStorage.getItem('ohm_registered') === 'true';
+    const hasValidName = !!(initialLocal?.studentName && initialLocal.studentName !== 'Học Sinh Lớp 9' && initialLocal.studentName !== 'Học sinh');
+    return !isRegistered || !hasValidName;
+  });
+
+  // Điểm số & Thành tích: Kế thừa và cộng dồn vĩnh viễn từ phiên trước
+  const [score, setScore] = useState<number>(() => initialLocal?.score || 0);
+  const [unlockedStageId, setUnlockedStageId] = useState<number>(() => {
+    if (initialLocal?.completedStages && initialLocal.completedStages.length > 0) {
+      return Math.min(7, Math.max(...initialLocal.completedStages) + 1);
+    }
+    return 1;
+  });
+  const [unlockedGameLevel, setUnlockedGameLevel] = useState<number>(() => initialLocal?.currentLevel || 1);
+  const [unlockedBadges, setUnlockedBadges] = useState<string[]>(() => {
+    return initialLocal?.badgesEarned && initialLocal.badgesEarned.length > 0
+      ? initialLocal.badgesEarned
+      : ['badge-1'];
+  });
   const [isBadgesModalOpen, setIsBadgesModalOpen] = useState<boolean>(false);
 
-  // Performance metrics
-  const [answersCount, setAnswersCount] = useState<number>(0);
-  const [correctAnswersCount, setCorrectAnswersCount] = useState<number>(0);
-  const [wrongQuestionIds, setWrongQuestionIds] = useState<string[]>([]);
-  const [sessionId] = useState<string>(() => `session-${Date.now()}`);
-  const [startTime] = useState<string>(() => new Date().toISOString());
+  // Thống kê câu hỏi: Giữ nguyên số câu đã làm và câu đúng
+  const [answersCount, setAnswersCount] = useState<number>(() => initialLocal?.answersCount || 0);
+  const [correctAnswersCount, setCorrectAnswersCount] = useState<number>(() => initialLocal?.correctAnswersCount || 0);
+  const [wrongQuestionIds, setWrongQuestionIds] = useState<string[]>(() => initialLocal?.wrongQuestionIds || []);
 
-  // Load initial session and check if registration modal should pop up
-  useEffect(() => {
-    const hasRegistered = localStorage.getItem('ohm_registered');
-    const saved = loadLocalSession();
-    if (saved) {
-      if (saved.studentName) setStudentName(saved.studentName);
-      if (saved.className) setClassName(saved.className);
-      if (saved.schoolName) setSchoolName(saved.schoolName);
-      if (saved.score) setScore(saved.score);
-      if (saved.currentLevel) setUnlockedGameLevel(saved.currentLevel);
-      if (saved.completedStages && saved.completedStages.length > 0) {
-        setUnlockedStageId(Math.min(7, Math.max(...saved.completedStages) + 1));
-      }
-      if (saved.badgesEarned) setUnlockedBadges(saved.badgesEarned);
-      if (saved.answersCount) setAnswersCount(saved.answersCount);
-      if (saved.correctAnswersCount) setCorrectAnswersCount(saved.correctAnswersCount);
-      if (saved.wrongQuestionIds) setWrongQuestionIds(saved.wrongQuestionIds);
-    }
+  // MÃ ĐỊNH DANH HỌC SINH CỐ ĐỊNH (Không bao giờ đổi khi reload trang để ghi đè đúng dòng trong Sheet)
+  const [sessionId] = useState<string>(() => {
+    if (initialLocal?.id) return initialLocal.id;
+    const persistentId = localStorage.getItem('ohm_persistent_student_id');
+    if (persistentId) return persistentId;
+    const newId = `student-${Date.now()}`;
+    localStorage.setItem('ohm_persistent_student_id', newId);
+    return newId;
+  });
 
-    if (!hasRegistered || !saved?.studentName || saved.studentName === 'Học Sinh Lớp 9') {
-      setIsRegistrationModalOpen(true);
-    }
-  }, []);
+  // THỜI GIAN BẮT ĐẦU: Duy trì mốc thời gian lần đầu vào học
+  const [startTime] = useState<string>(() => {
+    if (initialLocal?.startTime) return initialLocal.startTime;
+    const savedStartTime = localStorage.getItem('ohm_session_start_time');
+    if (savedStartTime) return savedStartTime;
+    const nowTime = new Date().toISOString();
+    localStorage.setItem('ohm_session_start_time', nowTime);
+    return nowTime;
+  });
 
-  // Update badges whenever score, stage or game level increases
+  // Tăng điểm và kiểm tra mở khóa huy hiệu
   const handleScoreEarned = (pts: number) => {
     setScore((prev) => {
       const newScore = prev + pts;
@@ -100,14 +117,23 @@ export default function App() {
   };
 
   const handleSaveStudentProfile = (name: string, cls: string, school: string) => {
-    setStudentName(name);
-    setClassName(cls);
-    setSchoolName(school);
+    const cleanName = name.trim();
+    const cleanClass = cls.trim() || '9A';
+    const cleanSchool = school.trim();
+
+    setStudentName(cleanName);
+    setClassName(cleanClass);
+    setSchoolName(cleanSchool);
+
     localStorage.setItem('ohm_registered', 'true');
+    localStorage.setItem('ohm_student_name', cleanName);
+    localStorage.setItem('ohm_student_class', cleanClass);
+    localStorage.setItem('ohm_student_school', cleanSchool);
+
     setIsRegistrationModalOpen(false);
   };
 
-  // Compute Overall Progress % (based on 7 stages, 5 game levels, badges)
+  // Tính phần trăm tiến trình tổng thể
   const progressPercent = useMemo(() => {
     const stageWeight = (unlockedStageId / 7) * 40;
     const gameWeight = (unlockedGameLevel / 5) * 40;
@@ -115,11 +141,11 @@ export default function App() {
     return Math.min(100, Math.round(stageWeight + gameWeight + badgeWeight));
   }, [unlockedStageId, unlockedGameLevel, unlockedBadges]);
 
-  // Current session object for sync & teacher dashboard
+  // Đối tượng phiên học sinh đồng bộ
   const currentSession: StudentSession = useMemo(
     () => ({
       id: sessionId,
-      studentName,
+      studentName: studentName || 'Học Sinh',
       className,
       schoolName,
       startTime,
@@ -148,10 +174,18 @@ export default function App() {
     ]
   );
 
-  // Auto-sync session to localStorage & cloud
+  // Tự động đồng bộ lên Cloud & Google Sheets
   useEffect(() => {
+    // Chỉ gửi lên database khi học sinh ĐÃ ĐĂNG KÝ HỌ TÊN THẬT (không bao giờ gửi tên mặc định "Học Sinh Lớp 9")
+    const isRegistered = localStorage.getItem('ohm_registered') === 'true';
+    const hasValidName = studentName && studentName.trim() !== '' && studentName !== 'Học Sinh Lớp 9' && studentName !== 'Học sinh';
+
+    if (!isRegistered || !hasValidName) {
+      return;
+    }
+
     submitSessionResult(currentSession);
-  }, [currentSession]);
+  }, [currentSession, studentName]);
 
   return (
     <div className="min-h-screen bg-slate-100/60 font-sans text-slate-900 flex flex-col selection:bg-blue-600 selection:text-white">
