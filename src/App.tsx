@@ -170,8 +170,8 @@ export default function App() {
         badgesCount={unlockedBadges.length}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Main Container - Full Width & Full Screen Responsive */}
+      <main className="flex-1 w-full px-3 sm:px-6 lg:px-8 2xl:px-12 py-6">
         {activeTab === 'learn' && (
           <LearnSection
             unlockedStageId={unlockedStageId}
@@ -208,9 +208,9 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200/80 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      {/* Footer - Full Width */}
+      <footer className="bg-white border-t border-slate-200/80 py-5 text-center text-xs text-slate-500">
+        <div className="w-full px-4 sm:px-6 lg:px-8 2xl:px-12 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>
             <b>KHTN 9 - Bài 11: Điện trở & Định luật Ohm</b> • Phiên bản học tập tương tác
           </div>
