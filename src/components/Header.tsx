@@ -46,6 +46,12 @@ export const Header: React.FC<HeaderProps> = ({
   const [tempClass, setTempClass] = useState<string>(className);
   const [tempSchool, setTempSchool] = useState<string>(schoolName || '');
 
+  React.useEffect(() => {
+    setTempName(studentName);
+    setTempClass(className);
+    setTempSchool(schoolName || '');
+  }, [studentName, className, schoolName]);
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     if (tempName.trim()) {
